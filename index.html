@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <title>ПВО: Щит України</title>
+  <style>
+    body {
+      background: #222;
+      color: white;
+      font-family: sans-serif;
+      text-align: center;
+    }
+    canvas {
+      background: #111;
+      border: 2px solid #555;
+      display: block;
+      margin: 20px auto;
+    }
+    button {
+      padding: 10px;
+      margin: 5px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <h1>ПВО: Щит України</h1>
+  <p>Клікни, щоб розмістити ППО. Захисти міста!</p>
+  <button onclick="startWave()">Почати хвилю</button>
+  <canvas id="game" width="800" height="600"></canvas>
+
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+
+    const cities = [
+      { name: "Київ", x: 400, y: 100 },
+      { name: "Дніпро", x: 500, y: 300 },
+      { name: "Львів", x: 200, y: 150 },
+      { name: "Суми", x: 470, y: 70 },
+      { name: "Кривий Ріг", x: 460, y: 350 },
+      { name: "Чернігів", x: 430, y: 60 },
+      { name: "Запоріжжя", x: 520, y: 330 },
+      { name: "Біла Церква", x: 390, y: 140 }
+    ];
+
+    const defenses = []; // ППО установки
+    const enemies = [];
+
+    canvas.addEventListener('click', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      defenses.push({ x, y, range: 100 });
+    });
+
+    function spawnEnemy() {
+      const target = cities[Math.floor(Math.random() * cities.length)];
+      enemies.push({
+        x: Math.random() * canvas.width,
+        y: canvas.height + 20,
+        target,
+        speed: 1
+      });
+    }
+
+    function startWave() {
+      for (let i = 0; i < 10; i++) {
+        setTimeout(spawnEnemy, i * 500);
+      }
+    }
+
+    function update() {
+      enemies.forEach((enemy, i) => {
+        const dx = enemy.target.x - enemy.x;
+        const dy = enemy.target.y - enemy.y;
+        const dist = Math.hypot(dx, dy);
+        enemy.x += (dx / dist) * enemy.speed;
+        enemy.y += (dy / dist) * enemy.speed;
+
+        // Check if destroyed by ППО
+        for (const pvo of defenses) {
+          const d = Math.hypot(pvo.x - enemy.x, pvo.y - enemy.y);
+          if (d < pvo.range) {
+            enemies.splice(i, 1);
+            return;
+          }
+        }
+
+        // Check if reached target
+        if (dist < 5) {
+          alert(`⚠️ Ворог ударив по місту: ${enemy.target.name}!`);
+          enemies.splice(i, 1);
+        }
+      });
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw cities
+      for (const city of cities) {
+        ctx.fillStyle = "skyblue";
+        ctx.beginPath();
+        ctx.arc(city.x, city.y, 10, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillText(city.name, city.x - 20, city.y - 15);
+      }
+
+      // Draw defenses
+      for (const pvo of defenses) {
+        ctx.strokeStyle = "lime";
+        ctx.beginPath();
+        ctx.arc(pvo.x, pvo.y, pvo.range, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.fillStyle = "green";
+        ctx.fillRect(pvo.x - 5, pvo.y - 5, 10, 10);
+      }
+
+      // Draw enemies
+      for (const enemy of enemies) {
+        ctx.fillStyle = "red";
+        ctx.beginPath();
+        ctx.arc(enemy.x, enemy.y, 5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function gameLoop() {
+      update();
+      draw();
+      requestAnimationFrame(gameLoop);
+    }
+
+    gameLoop();
+  </script>
+</body>
+</html>
